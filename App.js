@@ -6,108 +6,111 @@
  * @flow strict-local
  */
 
-import React from 'react';
+import React, { Component } from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
-  ScrollView,
-  View,
   Text,
-  StatusBar,
+  View,
+  Button,
 } from 'react-native';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import firestore from '@react-native-firebase/firestore';
 
-const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
-};
+
+class App extends Component {
+  state = {
+    users: []
+  };
+
+  constructor(props) {
+    super(props);
+    this.getUser();
+    this.getUsers();
+
+    this.subscriber =
+      firestore()
+        .collection('users')
+        .onSnapshot(docs => {
+          let users = []
+          docs.forEach(doc => {
+            users.push(doc.data())
+          })
+          this.setState({ users });
+          console.log(users)
+        })
+
+
+    //   this.subscriber = 
+    // firestore()
+    // .collection('users')
+    //   .doc('J2koHRR3k202PLsSfNAP').onSnapshot(doc => {
+    //     this.setState({
+    //       user: {
+    //         name: doc.data().name,
+    //       }
+    //     })
+    //   })
+  };
+
+  getUser = async () => {
+    const userDocument = await firestore().collection("users")
+      .doc("J2koHRR3k202PLsSfNAP").get();
+
+    console.log(userDocument);
+  };
+
+  getUsers = async () => {
+    const users = await firestore()
+      .collection('users')
+      .where('age', '>', 19)
+      .get()
+
+    console.log(users);
+  };
+
+  addUser = async () => {
+    let name = Math.random().toString(36).substring(7);
+    firestore().collection('users').add({
+      name,
+      age: 20,
+    })
+  };
+
+  deleteUsers = async () => {
+    const usersQuerySnapshot = await firestore()
+      .collection('users')
+      .get()
+
+    const batch = firestore().batch();
+
+    usersQuerySnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    batch.commit();
+  }
+
+  render() {
+    const array = this.state.users.map((user, index) =>
+      <View key={index}>
+        <Text>{user.name}</Text>
+      </View>)
+
+    return (
+      <View style={styles.container}>
+        <Button title='Hepsini Sil' onPress={this.deleteUsers} />
+        <Button title='Ekle' onPress={this.addUser} />
+        {array}
+      </View>
+    );
+  }
+}
 
 const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
-  },
-  engine: {
-    position: 'absolute',
-    right: 0,
-  },
-  body: {
-    backgroundColor: Colors.white,
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
